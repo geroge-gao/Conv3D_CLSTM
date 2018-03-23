@@ -1,4 +1,6 @@
+
 ## Recurrent layer
+import tensorflow as tf
 class RNNLayer(Layer):
     """
     The :class:`RNNLayer` class is a RNN layer, you can implement vanilla RNN,
@@ -17,7 +19,7 @@ class RNNLayer(Layer):
         return_seq_2d = False,
         name = 'rnn_layer',
     ):
-        Layer.__init__(self, name=name)
+        Layer.__init__(self,name=name)
         self.inputs = layer.outputs
 
         print("  tensorlayer:Instantiate RNNLayer %s: n_hidden:%d, n_steps:%d, in_dim:%d %s, cell_fn:%s " % (self.name, n_hidden,
@@ -103,7 +105,7 @@ class RNNLayer(Layer):
                 if self.inputs.get_shape().ndims==3: #Guangming Zhu
                     self.outputs = tf.reshape(tf.concat(1, outputs), [-1, n_steps, n_hidden])
                 elif self.inputs.get_shape().ndims==5: #Guangming Zhu
-                    self.outputs = tf.reshape(tf.concat(1, outputs), [-1, n_steps, height, width, n_hidden]) #Guangming Zhu
+                    self.outputs = tf. (tf.concat(1, outputs), [-1, n_steps, height, width, n_hidden]) #Guangming Zhu
 
         self.final_state = state
 
@@ -111,5 +113,5 @@ class RNNLayer(Layer):
         self.all_params = list(layer.all_params)
         self.all_drop = dict(layer.all_drop)
         # print(type(self.outputs))
-        self.all_layers.extend( [self.outputs] )
-        self.all_params.extend( rnn_variables )
+        self.all_layers.extend([self.outputs])
+        self.all_params.extend(rnn_variables)

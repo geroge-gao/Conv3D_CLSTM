@@ -38,7 +38,7 @@ network_accu = tf.reduce_mean(tf.cast(tf.equal(tf.cast(network_y_op, tf.int32), 
 sess.run(tf.initialize_all_variables())
 
 # RGB
-testing_datalist = '/ssd/dataset/IsoGD_Image/valid_rgb_list.txt'
+testing_datalist = 'IsoGD_Image/valid_rgb_list.txt'
 X_test,y_test = data.load_video_list(testing_datalist)
 X_teidx = np.asarray(np.arange(0, len(y_test)), dtype=np.int32)
 y_test  = np.asarray(y_test, dtype=np.int32)
@@ -48,7 +48,7 @@ tl.files.assign_params(sess, load_params, networks)
 #networks.print_params(True)
 average_accuracy = 0.0
 test_iterations = 0
-print '%s: rgb testing' % datetime.now()
+print('%s: rgb testing' % datetime.now())
 for X_indices, y_label_t in tl.iterate.minibatches(X_teidx, 
                                                    y_test, 
                                                    batch_size, 
@@ -90,7 +90,7 @@ tl.files.assign_params(sess, load_params, networks)
 #networks.print_params(True)
 average_accuracy = 0.0
 test_iterations = 0
-print '%s: depth testing' % datetime.now()
+print('%s: depth testing' % datetime.now())
 for X_indices, y_label_t in tl.iterate.minibatches(X_teidx, 
                                                    y_test, 
                                                    batch_size, 
@@ -124,7 +124,7 @@ print (format_str % (datetime.now(), average_accuracy))
 fusion_prediction = rgb_prediction + depth_prediction
 prediction_values = tf.argmax(fusion_prediction, 1)
 final_accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.cast(prediction_values, tf.int32), y_test), tf.float32))
-print final_accuracy.eval()
+print(final_accuracy.eval())
 
 # In the end, close TensorFlow session.
 sess.close()

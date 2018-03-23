@@ -121,3 +121,5 @@ def _conv(args, output_size, k_size, bias=True, bias_start=0.0, scope=None):
     bias_term = vs.get_variable( "Bias", [output_size],
       initializer=init_ops.constant_initializer(bias_start))
   return res + bias_term
+
+

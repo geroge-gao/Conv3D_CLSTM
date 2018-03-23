@@ -1,17 +1,17 @@
+#coding=utf-8
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import io
 import sys
 import numpy as np
 import tensorflow as tf
-slim = tf.contrib.slim
 import tensorlayer as tl
 import inputs as data
 import c3d_clstm as net 
 import time
 from datetime import datetime
 import threading
-import cStringIO
+#import cStringIO
 
 seq_len = 32
 batch_size = 13
@@ -25,9 +25,9 @@ queue_num = 5
 start_step = 0
 
 num_classes = 249
-dataset_name = 'isogr_rgb'
-training_datalist = '/ssd/dataset/IsoGD_Image/train_rgb_list.txt'
-testing_datalist = '/ssd/dataset/IsoGD_Image/valid_rgb_list.txt'
+dataset_name = 'isogr_ rgb'
+training_datalist = 'trte_splits/IsoGD_Image/train_rgb_list.txt'
+testing_datalist = 'trte_splits/IsoGD_Image/valid_rgb_list.txt'
 
 curtime = '%s' % datetime.now()
 d = curtime.split(' ')[0]
@@ -36,63 +36,60 @@ strtime = '%s%s%s-%s%s%s' %(d.split('-')[0],d.split('-')[1],d.split('-')[2],
                             t.split(':')[0],t.split(':')[1],t.split(':')[2])
 
 saved_stdout = sys.stdout
-mem_log = cStringIO.StringIO()
+mem_log = io.StringIO()
 sys.stdout = mem_log
-logfile = './log/training_%s_%s.log' %(dataset_name, strtime)
+logfile = 'log/training_%s_%s.log' %(dataset_name, strtime)
 log = open(logfile, 'w')
 
 sess = tf.InteractiveSession()
+
+#输入张量=[batch_size,seq_len,height,width,channels]
 x = tf.placeholder(tf.float32, [batch_size, seq_len, 112, 112, 3], name='x')
+# y=[batch_size,label],每个时刻的标签
 y = tf.placeholder(tf.int32, shape=[batch_size, ], name='y')
-  
+
+#得到输出
 networks = net.c3d_clstm(x, num_classes, False, True)
+#outputs，当前层网络的输出，即预测结果
 networks_y = networks.outputs
+'''
+softmax将值归一化到[0,1]之间
+argmax返回每一行最大值，每一个时刻序列的类别
+'''
 networks_y_op = tf.argmax(tf.nn.softmax(networks_y), 1)
-networks_cost = tl.cost.cross_entropy(networks_y, y)
+#计算softmax交叉熵
+networks_cost = tl.cost.cross_entropy(networks_y, y,name="cost_network")
+'''
+首先将x转换成int32类型，然后判断是否与y相等
+最后利用tf.equal判断结果是否相等，返回值为bool
+利用tf.cast将correct_pre转换成[0,1]的浮点数，然后求平均值得到准确率
+'''
 correct_pred = tf.equal(tf.cast(networks_y_op, tf.int32), y)
 networks_accu = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
-    
+
+
 predictons = net.c3d_clstm(x, num_classes, True, False)
 predicton_y_op = tf.argmax(tf.nn.softmax(predictons.outputs),1)
 predicton_accu = tf.reduce_mean(tf.cast(tf.equal(tf.cast(predicton_y_op, tf.int32), y), tf.float32))
-  
+
+#l2正则化
 l2_cost = tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[0]) + \
           tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[6]) + \
           tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[12]) + \
           tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[14]) + \
           tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[20]) + \
-          tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[22]) + \
-          tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[24]) 
+          tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[22]) #+ \
+          # tf.contrib.layers.l2_regularizer(weight_decay)(networks.all_params[24])
 cost = networks_cost + l2_cost 
-  
-# Decay the learning rate exponentially based on the number of steps.
-#global_step = tf.Variable(start_step*2, trainable=False)
-#lr = tf.train.exponential_decay(learning_rate,
-#                                global_step,
-#                                decay_steps,
-#                                decay_rate,
-#                                staircase=True)
-#lr2 = tf.train.exponential_decay(learning_rate*10,
-#                                global_step,
-#                                decay_steps,
-#                                decay_rate,
-#                                staircase=True)
-#var_list1 = networks.all_params[:24] 
-#var_list2 = networks.all_params[24:]
-#opt1 = tf.train.GradientDescentOptimizer(lr)
-#opt2 = tf.train.GradientDescentOptimizer(lr2)
-#grads = tf.gradients(cost, var_list1 + var_list2)
-#grads1 = grads[:len(var_list1)]
-#grads2 = grads[len(var_list1):]
-#train_op1 = opt1.apply_gradients(zip(grads1, var_list1), global_step=global_step)
-#train_op2 = opt2.apply_gradients(zip(grads2, var_list2), global_step=global_step)
-#train_op = tf.group(train_op1, train_op2)
+
+
 global_step = tf.Variable(start_step, trainable=False)
 lr = tf.train.exponential_decay(learning_rate,
                                 global_step,
                                 decay_steps,
                                 decay_rate,
                                 staircase=True)
+#获取输出层网络参数
 train_params = networks.all_params
 train_op = tf.train.GradientDescentOptimizer(lr).minimize(cost, 
                                        var_list=train_params,
@@ -112,7 +109,7 @@ X_test,y_test = data.load_video_list(testing_datalist)
 X_teidx = np.asarray(np.arange(0, len(y_test)), dtype=np.int32)
 y_test  = np.asarray(y_test, dtype=np.int32)
   
-X_data_a  = np.empty((batch_size*queue_num, seq_len, 112, 112, 3),float)      
+X_data_a  = np.empty((batch_size*queue_num, seq_len, 112, 112, 3),float)
 y_label_a = np.empty((batch_size*queue_num,),int)
 
 full_flg  = np.zeros((queue_num, 1))
@@ -146,7 +143,11 @@ def training_data_read():
         image_fcnt.append(X_train[key_str]['framecnt'])
         image_olen.append(seq_len)
         is_training.append(True) # Training
+      #将image_path和image_fcnt和image_olen打包成一个元组
       image_info = zip(image_path,image_fcnt,image_olen,is_training)
+      '''
+      通过给定的数据，返回一个批次的结果
+      '''
       X_data_a[wr_pos*batch_size:(wr_pos+1)*batch_size,:,:,:,:] = \
                   tl.prepro.threading_data([_ for _ in image_info], 
                                            data.prepare_isogr_rgb_data)
@@ -163,7 +164,7 @@ wr_thread.start()
 # Output the saved logs to stdout and the opened log file
 sys.stdout = saved_stdout
 mem_log.seek(0)
-print mem_log.read()
+print(mem_log.read())
 mem_log.seek(0)
 log.writelines(['%s' % mem_log.read()])
 log.flush()

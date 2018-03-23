@@ -11,7 +11,7 @@ import c3d_clstm as net
 import time
 from datetime import datetime
 import threading
-import cStringIO
+#import cStringIO
 
 seq_len = 32
 batch_size = 13
@@ -36,7 +36,7 @@ strtime = '%s%s%s-%s%s%s' %(d.split('-')[0],d.split('-')[1],d.split('-')[2],
                             t.split(':')[0],t.split(':')[1],t.split(':')[2])
 
 saved_stdout = sys.stdout
-mem_log = cStringIO.StringIO()
+mem_log = io.StringIO()
 sys.stdout = mem_log
 logfile = './log/training_%s_%s.log' %(dataset_name, strtime)
 log = open(logfile, 'w')
@@ -157,7 +157,7 @@ wr_thread.start()
 # Output the saved logs to stdout and the opened log file
 sys.stdout = saved_stdout
 mem_log.seek(0)
-print mem_log.read()
+print(mem_log.read())
 mem_log.seek(0)
 log.writelines(['%s' % mem_log.read()])
 log.flush()
