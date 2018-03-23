@@ -84,6 +84,7 @@ cost = networks_cost + l2_cost
 
 
 global_step = tf.Variable(start_step, trainable=False)
+#学习衰减率，按照一定比率衰减
 lr = tf.train.exponential_decay(learning_rate,
                                 global_step,
                                 decay_steps,
@@ -147,6 +148,7 @@ def training_data_read():
       image_info = zip(image_path,image_fcnt,image_olen,is_training)
       '''
       通过给定的数据，返回一个批次的结果
+      _ for _ in image_info:使用的是链表推导式
       '''
       X_data_a[wr_pos*batch_size:(wr_pos+1)*batch_size,:,:,:,:] = \
                   tl.prepro.threading_data([_ for _ in image_info], 
